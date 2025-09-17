@@ -32,6 +32,7 @@ class FixedOrderStaggeredGridLayoutManager(
     private var spanCount: Int = max(1, spanCount)
     private var spanSizeLookup: SpanSizeLookup = SpanSizeLookup.DEFAULT
     private var pinningStrategy: ColumnPinningStrategy? = null
+    private var autoInvalidateOnSizeChange: Boolean = true
 
     private var verticalScrollOffset: Int = 0
 
@@ -90,6 +91,12 @@ class FixedOrderStaggeredGridLayoutManager(
         precomputedItemCount = 0
         requestLayout()
     }
+
+    fun setAutoInvalidateOnSizeChange(enabled: Boolean) {
+        autoInvalidateOnSizeChange = enabled
+    }
+
+    fun getAutoInvalidateOnSizeChange(): Boolean = autoInvalidateOnSizeChange
 
     override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
         if (itemCount == 0) {
@@ -338,29 +345,42 @@ class FixedOrderStaggeredGridLayoutManager(
         while (pos < itemCount) {
             val rect = itemRects.get(pos) ?: break
             if (rect.top > viewportBottom) break
-            val existing = findViewByPosition(pos)
-            if (existing == null) {
-                val view = recycler.getViewForPosition(pos)
-                addView(view)
-                layoutDecoratedWithMargins(
-                    view,
-                    rect.left,
-                    rect.top - verticalScrollOffset,
-                    rect.right,
-                    rect.bottom - verticalScrollOffset,
-                )
-            } else {
-                // Ensure position & offset is correct
-                layoutDecoratedWithMargins(
-                    existing,
-                    rect.left,
-                    rect.top - verticalScrollOffset,
-                    rect.right,
-                    rect.bottom - verticalScrollOffset,
-                )
+            val view = findViewByPosition(pos) ?: recycler.getViewForPosition(pos).also { addView(it) }
+
+            // Optionally re-measure visible child to detect runtime size changes
+            if (autoInvalidateOnSizeChange) {
+                if (ensureMeasuredForRect(view, rect)) {
+                    invalidateFromPosition(pos)
+                    return
+                }
             }
+
+            layoutDecoratedWithMargins(
+                view,
+                rect.left,
+                rect.top - verticalScrollOffset,
+                rect.right,
+                rect.bottom - verticalScrollOffset,
+            )
             pos++
         }
+    }
+
+    // Returns true if measured (decorated) height differs from cached rect height
+    private fun ensureMeasuredForRect(view: View, rect: Rect): Boolean {
+        val lp = view.layoutParams as RecyclerView.LayoutParams
+        val decor = Rect()
+        calculateItemDecorationsForChild(view, decor)
+        val childWidthAvailable = (rect.right - rect.left) - lp.leftMargin - lp.rightMargin - decor.left - decor.right
+        val wSpec = View.MeasureSpec.makeMeasureSpec(max(0, childWidthAvailable), View.MeasureSpec.EXACTLY)
+        val hSpec = if (lp.height >= 0) {
+            View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY)
+        } else {
+            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+        }
+        measureChildWithMargins(view, wSpec, hSpec)
+        val decorated = view.measuredHeight + lp.topMargin + lp.bottomMargin + decor.top + decor.bottom
+        return decorated != (rect.bottom - rect.top)
     }
 
     private fun recycleAndFill(recycler: RecyclerView.Recycler) {
