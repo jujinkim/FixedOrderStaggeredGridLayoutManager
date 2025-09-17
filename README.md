@@ -20,6 +20,8 @@ RecyclerView's default StaggeredGridLayoutManager can reorder items and repack o
 - Column pinning strategy to fix starting column per item
  - Proper vertical scrolling, recycling, smooth scrolling, and state restore
  - scrollToPosition/smoothScrollToPosition with SNAP_TO_START
+ - Explicit recompute APIs for runtime size changes (per-item and bulk)
+ - Holder-side integration options (interface callback or extension helper)
 
 ## Installation
 Gradle (Kotlin DSL):
@@ -53,8 +55,8 @@ lm.setColumnPinningStrategy { position ->
 recyclerView.layoutManager = lm
 ```
 
-### ViewHolder-side runtime size change
-If your ViewHolder replaces children at runtime and height may change, you have two options:
+### Runtime Size Changes (ViewHolder/Adapter)
+When a ViewHolder replaces children at runtime and its measured height may change, choose one of:
 
 1) Implement the interface and use the injected callback
 ```kotlin
@@ -74,7 +76,7 @@ class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container
 }
 ```
 
-2) Or call the convenience extension from inside the holder
+2) Holder calls the convenience extension
 ```kotlin
 class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container) {
     fun rebuildChildren() {
@@ -88,16 +90,36 @@ class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container
 }
 ```
 
+3) Adapter-level (alternative)
+```kotlin
+// After updating data that affects height at a position
+adapter.notifyItemChanged(position, /* payload= */ "size_changed")
+// or
+layoutManager.invalidateFromPosition(position)
+
+// For many items changed
+layoutManager.invalidateItemPositions()
+```
+
+### Why Explicit Recompute APIs?
+- Determinism: This LayoutManager computes absolute item coordinates once from scroll=0 and does not silently repack on scroll/layout passes. Arbitrary child view mutations in a ViewHolder are not implicitly interpreted as “the item’s measured size changed”.
+- Predictability: You stay in control of when rebalancing happens, so scroll position and visual order never jump due to background repacks.
+- Performance: Recompute can start from the first affected position (`invalidateFromPosition(position)`), instead of re-laying out all items. For batch updates, `invalidateItemPositions()` makes the intent explicit.
+- Contrast with SGLM: The platform StaggeredGridLayoutManager may remeasure/repack visible items on scroll, which can reorder or shift content. This library favors stable, fixed order; explicit signals are required when item sizes actually change.
+- Practical tip: If the internal change does not alter measured height (e.g., swapping equal-height content), no call is needed. When in doubt, calling the holder callback/extension is safe and cheap.
+
 ## API Reference (Brief)
 - `class FixedOrderStaggeredGridLayoutManager(context, spanCount = 2)`
   - `setSpanCount(Int)`, `getSpanCount()`
   - `setSpanSizeLookup(SpanSizeLookup)`, `getSpanSizeLookup()`
   - `setColumnPinningStrategy(ColumnPinningStrategy)`, `getColumnPinningStrategy()`
-  - `invalidateItemPositions()` — recompute from scratch on next layout
   - `invalidateFromPosition(Int)` — recompute from the first affected position (use when a single item’s size may change at runtime)
+  - `invalidateItemPositions()` — recompute from scratch on next layout (use for bulk/global changes)
   - `scrollToPosition(Int)`, `smoothScrollToPosition(...)` — snaps target to start using absolute cached rects
 - `abstract class SpanSizeLookup { fun getSpanSize(position: Int): Int }`
 - `typealias ColumnPinningStrategy = (position: Int) -> Int?`
+ - `interface FixedOrderItemSizeChangeAware` — implement in your ViewHolder to receive a size-change callback injected by the LayoutManager
+ - `fun RecyclerView.ViewHolder.notifyFixedOrderItemSizeChanged()` — convenience extension to trigger a per-item recompute from inside the holder
 
 ## Notes & Limitations
 - Coordinates are recomputed when: adapter items are inserted/removed/moved, span count changes, span sizes change, or an item’s measured size changes.
@@ -106,10 +128,9 @@ class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container
 
 ## Important Differences vs Android's StaggeredGridLayoutManager
 - Fixed-order placement uses cached absolute rects; scrolling does not trigger repacking or implicit reseat of views.
-- If a ViewHolder’s internal layout changes at runtime (e.g., `removeAllViews()` then `addView()`), and the measured height can change, this layout does not repack on scroll like platform SGLM. Two options:
-  - Explicitly notify for runtime size changes (권장):
-    - Single item: `adapter.notifyItemChanged(position, /* payload= */ "size_changed")` 또는 `layoutManager.invalidateFromPosition(position)`
-    - Many changed: `layoutManager.invalidateItemPositions()`
+- If a ViewHolder’s internal layout changes at runtime (e.g., `removeAllViews()` then `addView()`), and the measured height can change, this layout does not repack on scroll like platform SGLM. You must explicitly trigger a recompute.
+  - Recommended (holder-side): Implement `FixedOrderItemSizeChangeAware` and invoke the injected callback, or call `notifyFixedOrderItemSizeChanged()` extension from the holder
+  - Adapter-side alternatives: Single item → `adapter.notifyItemChanged(position, payload)` or `layoutManager.invalidateFromPosition(position)`; Many items → `layoutManager.invalidateItemPositions()`
 - This differs from the platform SGLM, which may remeasure and repack visible items on scroll and layout passes; here, item coordinates are deterministic and only change upon explicit data/size changes.
 
 Example (dynamic child swap):
