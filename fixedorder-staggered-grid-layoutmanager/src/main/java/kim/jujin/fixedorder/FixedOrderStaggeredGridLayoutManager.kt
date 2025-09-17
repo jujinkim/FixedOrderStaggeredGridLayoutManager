@@ -372,7 +372,7 @@ class FixedOrderStaggeredGridLayoutManager(
         private var size = 0
 
         fun put(key: Int, value: Rect) {
-            val idx = binarySearch(keys, 0, size, key)
+            val idx = java.util.Arrays.binarySearch(keys, 0, size, key)
             if (idx >= 0) {
                 values[idx] = value
                 return
@@ -389,14 +389,14 @@ class FixedOrderStaggeredGridLayoutManager(
         }
 
         fun get(key: Int): Rect? {
-            val idx = binarySearch(keys, 0, size, key)
+            val idx = java.util.Arrays.binarySearch(keys, 0, size, key)
             return if (idx >= 0) values[idx] else null
         }
 
         fun clear() { size = 0 }
 
         fun removeFrom(keyInclusive: Int) {
-            val idx = binarySearch(keys, 0, size, keyInclusive)
+            val idx = java.util.Arrays.binarySearch(keys, 0, size, keyInclusive)
             val start = if (idx >= 0) idx else idx.inv()
             if (start < size) {
                 size = start
