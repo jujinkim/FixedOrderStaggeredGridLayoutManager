@@ -47,5 +47,5 @@ Current implementation highlights
 - Column pinning to a start column; pinned ignores shortest-column heuristic
 - Vertical scroll/recycling with stable coordinates; SmoothScroller support
 - Partial invalidation from first affected position on adapter updates
-- Optional auto-invalidate when a visible child’s measured height changes (default ON)
+- Explicit APIs for recompute: `invalidateFromPosition(pos)` for per-item runtime size changes, and `invalidateItemPositions()` for global changes
 - Sample uses ItemDecoration for gaps, and shows 2/3 toggling, irregular heights, full-span, and pinned items

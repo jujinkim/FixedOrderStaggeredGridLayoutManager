@@ -32,7 +32,6 @@ class FixedOrderStaggeredGridLayoutManager(
     private var spanCount: Int = max(1, spanCount)
     private var spanSizeLookup: SpanSizeLookup = SpanSizeLookup.DEFAULT
     private var pinningStrategy: ColumnPinningStrategy? = null
-    private var autoInvalidateOnSizeChange: Boolean = true
 
     private var verticalScrollOffset: Int = 0
 
@@ -85,18 +84,26 @@ class FixedOrderStaggeredGridLayoutManager(
 
     fun getColumnPinningStrategy(): ColumnPinningStrategy? = pinningStrategy
 
-    /** Force full re-precompute on next layout. */
+    /**
+     * Force full re-precompute on next layout.
+     * Use when many items changed or global metrics (e.g., span sizes) changed.
+     */
     fun invalidateItemPositions() {
         itemRects.clear()
         precomputedItemCount = 0
         requestLayout()
     }
 
-    fun setAutoInvalidateOnSizeChange(enabled: Boolean) {
-        autoInvalidateOnSizeChange = enabled
+    /**
+     * Recompute layout starting from [positionStart].
+     * Call this when a single item (or a few in sequence) has a runtime size change.
+     */
+    fun invalidateFromPosition(positionStart: Int) {
+        // Remove cached rects from positionStart onwards; earlier positions remain stable per spec
+        itemRects.removeFrom(positionStart)
+        precomputedItemCount = min(precomputedItemCount, positionStart)
+        requestLayout()
     }
-
-    fun getAutoInvalidateOnSizeChange(): Boolean = autoInvalidateOnSizeChange
 
     override fun onLayoutChildren(recycler: RecyclerView.Recycler, state: RecyclerView.State) {
         if (itemCount == 0) {
@@ -179,13 +186,6 @@ class FixedOrderStaggeredGridLayoutManager(
         payload: Any?
     ) {
         invalidateFromPosition(positionStart)
-    }
-
-    private fun invalidateFromPosition(positionStart: Int) {
-        // Remove cached rects from positionStart onwards; earlier positions remain stable per spec
-        itemRects.removeFrom(positionStart)
-        precomputedItemCount = min(precomputedItemCount, positionStart)
-        requestLayout()
     }
 
     // SmoothScroller support
@@ -323,16 +323,12 @@ class FixedOrderStaggeredGridLayoutManager(
         val wSpec = View.MeasureSpec.makeMeasureSpec(max(0, childWidthAvailable), View.MeasureSpec.EXACTLY)
 
         val hLp = lp.height
-        val hMode: Int
-        val hSize: Int
-        if (hLp >= 0) {
-            hMode = View.MeasureSpec.EXACTLY
-            hSize = hLp
+        val hSpec = if (hLp >= 0) {
+            View.MeasureSpec.makeMeasureSpec(hLp, View.MeasureSpec.EXACTLY)
         } else {
-            hMode = View.MeasureSpec.UNSPECIFIED
-            hSize = 0
+            // For WRAP_CONTENT, allow up to viewport height to avoid 0-height children under UNSPECIFIED.
+            View.MeasureSpec.makeMeasureSpec(max(0, verticalSpace()), View.MeasureSpec.AT_MOST)
         }
-        val hSpec = View.MeasureSpec.makeMeasureSpec(hSize, hMode)
 
         view.measure(wSpec, hSpec)
         val measuredHeight = view.measuredHeight + lp.topMargin + lp.bottomMargin + decor.top + decor.bottom
@@ -361,42 +357,12 @@ class FixedOrderStaggeredGridLayoutManager(
                 rect.right,
                 rect.bottom - verticalScrollOffset,
             )
-
-            // Optionally re-measure visible child to detect runtime size changes
-            // Perform after laying out so the user still sees content; defer invalidation.
-            if (autoInvalidateOnSizeChange) {
-                if (ensureMeasuredForRect(view, rect)) {
-                    // Defer invalidation to after this pass to avoid blank frame.
-                    pendingRecomputeFrom = min(pendingRecomputeFrom, pos)
-                }
-            }
             pos++
-        }
-
-        if (pendingRecomputeFrom != Int.MAX_VALUE) {
-            val startPos = pendingRecomputeFrom
-            pendingRecomputeFrom = Int.MAX_VALUE
-            invalidateFromPosition(startPos)
         }
     }
 
     // Returns true if measured (decorated) height differs from cached rect height
-    private var pendingRecomputeFrom: Int = Int.MAX_VALUE
-
-    private fun ensureMeasuredForRect(view: View, rect: Rect): Boolean {
-        val lp = view.layoutParams as RecyclerView.LayoutParams
-        val decor = Rect()
-        calculateItemDecorationsForChild(view, decor)
-        val childWidthAvailable = (rect.right - rect.left) - lp.leftMargin - lp.rightMargin - decor.left - decor.right
-        val wSpec = View.MeasureSpec.makeMeasureSpec(max(0, childWidthAvailable), View.MeasureSpec.EXACTLY)
-        val hSpec = if (lp.height >= 0) View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY)
-        else View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-
-        // Directly measure to compute decorated size and compare with cached rect
-        view.measure(wSpec, hSpec)
-        val decorated = view.measuredHeight + lp.topMargin + lp.bottomMargin + decor.top + decor.bottom
-        return decorated != (rect.bottom - rect.top)
-    }
+    // no auto-measure/auto-invalidate: explicit APIs should be used for runtime size changes
 
     private fun recycleAndFill(recycler: RecyclerView.Recycler) {
         val viewportTop = verticalScrollOffset + paddingTop
