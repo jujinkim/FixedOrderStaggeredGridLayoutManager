@@ -54,7 +54,27 @@ recyclerView.layoutManager = lm
 ```
 
 ### ViewHolder-side runtime size change
-If your ViewHolder replaces children at runtime and height may change, call the helper from inside the holder:
+If your ViewHolder replaces children at runtime and height may change, you have two options:
+
+1) Implement the interface and use the injected callback
+```kotlin
+class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container),
+    FixedOrderItemSizeChangeAware {
+    private var onSizeChange: (() -> Unit)? = null
+    override fun setFixedOrderItemSizeChangeCallback(callback: () -> Unit) {
+        onSizeChange = callback
+    }
+    fun rebuildChildren() {
+        container.removeAllViews()
+        val child = LayoutInflater.from(container.context)
+            .inflate(R.layout.item_variant, container, false)
+        container.addView(child, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        onSizeChange?.invoke()
+    }
+}
+```
+
+2) Or call the convenience extension from inside the holder
 ```kotlin
 class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container) {
     fun rebuildChildren() {
