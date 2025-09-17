@@ -107,8 +107,13 @@ class FixedOrderStaggeredGridLayoutManager(
 
         ensureColumnBounds()
 
-        if (precomputedItemCount < itemCount) {
+        val needRecompute = precomputedItemCount < itemCount
+        if (needRecompute) {
+            // Detach first so precompute can safely obtain/measure scrap views
+            detachAndScrapAttachedViews(recycler)
             precomputeAll(recycler, state)
+        } else if (childCount > 0) {
+            // we'll detach after clamping offset below
         }
 
         // Handle pending scroll target (e.g., scrollToPosition)
@@ -128,8 +133,10 @@ class FixedOrderStaggeredGridLayoutManager(
         verticalScrollOffset = min(verticalScrollOffset, maxOffset)
         verticalScrollOffset = max(0, verticalScrollOffset)
 
-        // Detach & scrap all first; we will layout visible
-        detachAndScrapAttachedViews(recycler)
+        // Detach & scrap before laying out visible (if not already detached)
+        if (!needRecompute) {
+            detachAndScrapAttachedViews(recycler)
+        }
         layoutVisibleChildren(recycler)
     }
 
