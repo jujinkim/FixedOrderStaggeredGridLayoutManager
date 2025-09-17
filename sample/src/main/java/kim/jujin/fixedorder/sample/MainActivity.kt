@@ -28,6 +28,7 @@ class MainActivity : AppCompatActivity() {
         layoutManager = FixedOrderStaggeredGridLayoutManager(this, 2)
         recycler.layoutManager = layoutManager
         recycler.adapter = SampleAdapter(buildItems())
+        recycler.addItemDecoration(SpacingDecoration(dp = 8))
 
         layoutManager.setSpanSizeLookup(object : SpanSizeLookup() {
             override fun getSpanSize(position: Int): Int {
@@ -82,8 +83,21 @@ class MainActivity : AppCompatActivity() {
             tv.layoutParams = RecyclerView.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 heightPx,
-            ).apply { setMargins(8, 8, 8, 8) }
+            )
         }
     }
 }
 
+private class SpacingDecoration(private val dp: Int) : RecyclerView.ItemDecoration() {
+    private fun toPx(view: android.view.View, dp: Int): Int =
+        (dp * view.resources.displayMetrics.density).toInt()
+    override fun getItemOffsets(
+        outRect: android.graphics.Rect,
+        view: android.view.View,
+        parent: RecyclerView,
+        state: RecyclerView.State
+    ) {
+        val px = toPx(view, dp)
+        outRect.set(px, px, px, px)
+    }
+}
