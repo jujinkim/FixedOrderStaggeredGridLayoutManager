@@ -8,6 +8,7 @@ import android.os.Parcelable
 import android.view.View
 import android.view.ViewGroup
 import androidx.annotation.VisibleForTesting
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import kotlin.math.ceil
 import kotlin.math.max
@@ -43,6 +44,7 @@ class FixedOrderStaggeredGridLayoutManager(
     private var columnBottoms: IntArray = IntArray(this.spanCount)
     private var contentHeight: Int = 0
     private var precomputedItemCount: Int = 0
+    private var pendingScrollPosition: Int = RecyclerView.NO_POSITION
 
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams {
         return RecyclerView.LayoutParams(
@@ -100,6 +102,18 @@ class FixedOrderStaggeredGridLayoutManager(
 
         if (precomputedItemCount < itemCount) {
             precomputeAll(recycler, state)
+        }
+
+        // Handle pending scroll target (e.g., scrollToPosition)
+        if (pendingScrollPosition != RecyclerView.NO_POSITION) {
+            val target = pendingScrollPosition.coerceIn(0, itemCount - 1)
+            val r = itemRects.get(target)
+            if (r != null) {
+                val desired = r.top - paddingTop
+                val maxOffset = max(0, contentHeight - verticalSpace())
+                verticalScrollOffset = desired.coerceIn(0, maxOffset)
+            }
+            pendingScrollPosition = RecyclerView.NO_POSITION
         }
 
         // Clamp offset
@@ -165,6 +179,19 @@ class FixedOrderStaggeredGridLayoutManager(
         val first = if (childCount > 0) getPosition(getChildAt(0)!!) else 0
         val direction = if (targetPosition > first) 1f else -1f
         return PointF(0f, direction)
+    }
+
+    override fun smoothScrollToPosition(recyclerView: RecyclerView, state: RecyclerView.State, position: Int) {
+        val scroller = object : LinearSmoothScroller(recyclerView.context) {
+            override fun getVerticalSnapPreference(): Int = SNAP_TO_START
+        }
+        scroller.targetPosition = position
+        startSmoothScroll(scroller)
+    }
+
+    override fun scrollToPosition(position: Int) {
+        pendingScrollPosition = position
+        requestLayout()
     }
 
     // SavedState for offset

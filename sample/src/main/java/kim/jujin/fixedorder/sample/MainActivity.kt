@@ -42,10 +42,10 @@ class MainActivity : AppCompatActivity() {
             }
         })
 
-        layoutManager.setColumnPinningStrategy(ColumnPinningStrategy { pos ->
+        layoutManager.setColumnPinningStrategy { pos ->
             // Pin a few items to column 0 for demo
             if (pos % 11 == 4) 0 else null
-        })
+        }
 
         toolbar.setOnMenuItemClickListener { item ->
             if (item.itemId == R.id.action_toggle_span) {
