@@ -66,6 +66,32 @@ recyclerView.layoutManager = lm
 - Vertical-only orientation. Item decorations and margins are accounted for; no built-in item spacing.
 - Column pinning clamps start column into a valid window if spanSize would overflow.
 
+## Important Differences vs Android's StaggeredGridLayoutManager
+- Fixed-order placement uses cached absolute rects; scrolling does not trigger repacking or implicit reseat of views.
+- If a ViewHolder’s internal layout changes at runtime (e.g., `removeAllViews()` then `addView()`), and the measured height can change, you must notify so the layout is recomputed from the first affected position; otherwise the new content may be clipped or not fully visible.
+  - Notify a single item: `adapter.notifyItemChanged(position, /* payload= */ "size_changed")`
+  - Or invalidate globally when many items changed: `layoutManager.invalidateItemPositions()`
+- This differs from the platform SGLM, which may remeasure and repack visible items on scroll and layout passes; here, item coordinates are deterministic and only change upon explicit data/size changes.
+
+Example (dynamic child swap):
+```kotlin
+override fun onBindViewHolder(holder: VH, position: Int) {
+    val container = holder.container // FrameLayout, etc.
+    container.removeAllViews()
+    val newChild = inflater.inflate(R.layout.item_variant, container, false)
+    container.addView(
+        newChild,
+        FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
+    )
+    container.requestLayout()
+}
+
+// After data change that affects height
+adapter.notifyItemChanged(position, "size_changed")
+// or, when many changed
+layoutManager.invalidateItemPositions()
+```
+
 ## Sample App
 - `:sample` shows 2/3 span toggling, irregular heights, full-span/multi-span items, and pinned items.
 
@@ -78,4 +104,3 @@ Contributions welcome! Please use Conventional Commits and include test output i
 
 ## License
 MIT — see [LICENSE](LICENSE).
-
