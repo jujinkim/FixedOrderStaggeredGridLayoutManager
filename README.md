@@ -127,30 +127,9 @@ layoutManager.invalidateItemPositions()
 - Column pinning clamps start column into a valid window if spanSize would overflow.
 
 ## Important Differences vs Android's StaggeredGridLayoutManager
-- Fixed-order placement uses cached absolute rects; scrolling does not trigger repacking or implicit reseat of views.
-- If a ViewHolder’s internal layout changes at runtime (e.g., `removeAllViews()` then `addView()`), and the measured height can change, this layout does not repack on scroll like platform SGLM. You must explicitly trigger a recompute.
-  - Recommended (holder-side): Implement `FixedOrderItemSizeChangeAware` and invoke the injected callback, or call `notifyFixedOrderItemSizeChanged()` extension from the holder
-  - Adapter-side alternatives: Single item → `adapter.notifyItemChanged(position, payload)` or `layoutManager.invalidateFromPosition(position)`; Many items → `layoutManager.invalidateItemPositions()`
-- This differs from the platform SGLM, which may remeasure and repack visible items on scroll and layout passes; here, item coordinates are deterministic and only change upon explicit data/size changes.
-
-Example (dynamic child swap):
-```kotlin
-override fun onBindViewHolder(holder: VH, position: Int) {
-    val container = holder.container // FrameLayout, etc.
-    container.removeAllViews()
-    val newChild = inflater.inflate(R.layout.item_variant, container, false)
-    container.addView(
-        newChild,
-        FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT)
-    )
-    container.requestLayout()
-}
-
-// After data change that affects height
-adapter.notifyItemChanged(position, "size_changed")
-// or, when many changed
-layoutManager.invalidateItemPositions()
-```
+- Fixed-order placement uses cached absolute rects; scrolling does not repack or reorder items.
+- If a ViewHolder’s internal layout changes and height may change, you must explicitly trigger a recompute. See “Runtime Size Changes (ViewHolder/Adapter)”.
+- Platform SGLM may remeasure/repack on scroll; this library keeps coordinates deterministic and only changes them when explicitly signaled.
 
 ## Sample App
 - `:sample` shows 2/3 span toggling, irregular heights, full-span/multi-span items, and pinned items.
