@@ -53,6 +53,21 @@ lm.setColumnPinningStrategy { position ->
 recyclerView.layoutManager = lm
 ```
 
+### ViewHolder-side runtime size change
+If your ViewHolder replaces children at runtime and height may change, call the helper from inside the holder:
+```kotlin
+class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container) {
+    fun rebuildChildren() {
+        container.removeAllViews()
+        val child = LayoutInflater.from(container.context)
+            .inflate(R.layout.item_variant, container, false)
+        container.addView(child, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
+        // Tell the LayoutManager to recompute from this position
+        notifyFixedOrderItemSizeChanged()
+    }
+}
+```
+
 ## API Reference (Brief)
 - `class FixedOrderStaggeredGridLayoutManager(context, spanCount = 2)`
   - `setSpanCount(Int)`, `getSpanCount()`
