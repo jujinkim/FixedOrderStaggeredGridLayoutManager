@@ -2,14 +2,16 @@
 The repository currently contains only licensing scaffolding. Use this guide when introducing code for the FixedOrderStaggeredGridLayoutManager library.
 
 ## Project Structure & Module Organization
-- Place runtime sources in `library/src/main/java/com/.../layoutmanager/`. Mirror package names to match the LayoutManager and helper classes.
-- XML attrs and drawables live in `library/src/main/res/values` and `library/src/main/res/drawable`.
-- JVM unit tests go under `library/src/test/java/...`; instrumentation tests in `library/src/androidTest/java/...`.
-- A sample app belongs in `sample/` with UI assets under `sample/src/main/res/`.
-- Long-form docs and diagrams live under `docs/` (create as needed). Keep assets referenced via relative paths.
+- Library module: `fixedorder-staggered-grid-layoutmanager/`
+- Runtime sources: `fixedorder-staggered-grid-layoutmanager/src/main/java/kim/jujin/fixedorder/`
+- XML attrs and drawables: `fixedorder-staggered-grid-layoutmanager/src/main/res/values` and `.../res/drawable`
+- JVM unit tests: `fixedorder-staggered-grid-layoutmanager/src/test/java/...`
+- Instrumentation tests: `fixedorder-staggered-grid-layoutmanager/src/androidTest/java/...`
+- Sample app: `sample/` with UI assets in `sample/src/main/res/`
+- Long-form docs and diagrams live in `docs/` (create as needed). Keep assets referenced via relative paths.
 
 ## Build, Test, and Development Commands
-- `./gradlew assembleDebug` — builds the library and optional sample once the Gradle wrapper is added.
+- `./gradlew assembleDebug` — builds the library and sample (wrapper included).
 - `./gradlew lint ktlintCheck` — runs Android Lint and Kotlin style checks; fix issues with `./gradlew ktlintFormat`.
 - `./gradlew test` — executes JVM unit tests.
 - `./gradlew connectedAndroidTest` — runs instrumentation tests against a connected emulator or device.
