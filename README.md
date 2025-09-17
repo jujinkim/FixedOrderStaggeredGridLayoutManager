@@ -19,6 +19,8 @@ RecyclerView's default StaggeredGridLayoutManager can reorder items and repack o
 - Multi-span window packing with push-down to avoid overlap
 - Column pinning strategy to fix starting column per item
 - Proper vertical scrolling, recycling, smooth scrolling, and state restore
+- scrollToPosition/smoothScrollToPosition with SNAP_TO_START
+- Optional auto-invalidate when visible child size changes (default: ON)
 
 ## Installation
 Gradle (Kotlin DSL):
@@ -58,6 +60,8 @@ recyclerView.layoutManager = lm
   - `setSpanSizeLookup(SpanSizeLookup)`, `getSpanSizeLookup()`
   - `setColumnPinningStrategy(ColumnPinningStrategy)`, `getColumnPinningStrategy()`
   - `invalidateItemPositions()` — recompute from scratch on next layout
+  - `setAutoInvalidateOnSizeChange(Boolean)`, `getAutoInvalidateOnSizeChange()` — when `true` (default), remeasures visible children and auto-invalidates from the first affected position if measured height changed at runtime
+  - `scrollToPosition(Int)`, `smoothScrollToPosition(...)` — snaps target to start using absolute cached rects
 - `abstract class SpanSizeLookup { fun getSpanSize(position: Int): Int }`
 - `typealias ColumnPinningStrategy = (position: Int) -> Int?`
 
@@ -68,9 +72,11 @@ recyclerView.layoutManager = lm
 
 ## Important Differences vs Android's StaggeredGridLayoutManager
 - Fixed-order placement uses cached absolute rects; scrolling does not trigger repacking or implicit reseat of views.
-- If a ViewHolder’s internal layout changes at runtime (e.g., `removeAllViews()` then `addView()`), and the measured height can change, you must notify so the layout is recomputed from the first affected position; otherwise the new content may be clipped or not fully visible.
-  - Notify a single item: `adapter.notifyItemChanged(position, /* payload= */ "size_changed")`
-  - Or invalidate globally when many items changed: `layoutManager.invalidateItemPositions()`
+- If a ViewHolder’s internal layout changes at runtime (e.g., `removeAllViews()` then `addView()`), and the measured height can change, this layout does not repack on scroll like platform SGLM. Two options:
+  - Use the built-in auto-detection (default ON): visible children are remeasured and if any height changed, the layout auto-invalidates from the earliest affected position.
+  - Or notify manually for explicit control or bulk updates:
+    - Single item: `adapter.notifyItemChanged(position, /* payload= */ "size_changed")`
+    - Many changed: `layoutManager.invalidateItemPositions()`
 - This differs from the platform SGLM, which may remeasure and repack visible items on scroll and layout passes; here, item coordinates are deterministic and only change upon explicit data/size changes.
 
 Example (dynamic child swap):

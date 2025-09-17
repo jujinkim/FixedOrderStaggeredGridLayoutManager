@@ -16,6 +16,11 @@ The repository currently contains only licensing scaffolding. Use this guide whe
 - `./gradlew test` — executes JVM unit tests.
 - `./gradlew connectedAndroidTest` — runs instrumentation tests against a connected emulator or device.
 
+Publishing (manual)
+- GitHub Actions workflow `Publish to Maven Central` is manual (`workflow_dispatch`).
+- Requires repo secrets: `OSSRH_USERNAME`, `OSSRH_PASSWORD`, `SIGNING_KEY`, `SIGNING_PASSWORD`.
+- Run: Actions → Publish to Maven Central → Run workflow (optionally set version). Close/Release the staged repo in Sonatype for non-SNAPSHOT.
+
 ## Coding Style & Naming Conventions
 - Kotlin with 4-space indentation and trailing commas enabled for multi-line constructs.
 - Public API classes and enums use PascalCase; functions and properties camelCase; constants in UPPER_SNAKE_CASE inside a `companion object`.
@@ -35,3 +40,12 @@ The repository currently contains only licensing scaffolding. Use this guide whe
 
 ## Architecture Notes
 Keep the LayoutManager deterministic: lock adapter order, reuse span assignments, and guard against item removal churn. Document significant recycling or measurement changes in `docs/architecture.md`.
+
+Current implementation highlights
+- Deterministic, fixed-order staggered packing; absolute rects cached per position
+- SpanSizeLookup (1..spanCount), full-span, multi-span contiguous window with push-down
+- Column pinning to a start column; pinned ignores shortest-column heuristic
+- Vertical scroll/recycling with stable coordinates; SmoothScroller support
+- Partial invalidation from first affected position on adapter updates
+- Optional auto-invalidate when a visible child’s measured height changes (default ON)
+- Sample uses ItemDecoration for gaps, and shows 2/3 toggling, irregular heights, full-span, and pinned items
