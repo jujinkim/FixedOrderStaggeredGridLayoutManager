@@ -347,14 +347,6 @@ class FixedOrderStaggeredGridLayoutManager(
             if (rect.top > viewportBottom) break
             val view = findViewByPosition(pos) ?: recycler.getViewForPosition(pos).also { addView(it) }
 
-            // Optionally re-measure visible child to detect runtime size changes
-            if (autoInvalidateOnSizeChange) {
-                if (ensureMeasuredForRect(view, rect)) {
-                    invalidateFromPosition(pos)
-                    return
-                }
-            }
-
             layoutDecoratedWithMargins(
                 view,
                 rect.left,
@@ -362,23 +354,39 @@ class FixedOrderStaggeredGridLayoutManager(
                 rect.right,
                 rect.bottom - verticalScrollOffset,
             )
+
+            // Optionally re-measure visible child to detect runtime size changes
+            // Perform after laying out so the user still sees content; defer invalidation.
+            if (autoInvalidateOnSizeChange) {
+                if (ensureMeasuredForRect(view, rect)) {
+                    // Defer invalidation to after this pass to avoid blank frame.
+                    pendingRecomputeFrom = min(pendingRecomputeFrom, pos)
+                }
+            }
             pos++
+        }
+
+        if (pendingRecomputeFrom != Int.MAX_VALUE) {
+            val startPos = pendingRecomputeFrom
+            pendingRecomputeFrom = Int.MAX_VALUE
+            invalidateFromPosition(startPos)
         }
     }
 
     // Returns true if measured (decorated) height differs from cached rect height
+    private var pendingRecomputeFrom: Int = Int.MAX_VALUE
+
     private fun ensureMeasuredForRect(view: View, rect: Rect): Boolean {
         val lp = view.layoutParams as RecyclerView.LayoutParams
         val decor = Rect()
         calculateItemDecorationsForChild(view, decor)
         val childWidthAvailable = (rect.right - rect.left) - lp.leftMargin - lp.rightMargin - decor.left - decor.right
         val wSpec = View.MeasureSpec.makeMeasureSpec(max(0, childWidthAvailable), View.MeasureSpec.EXACTLY)
-        val hSpec = if (lp.height >= 0) {
-            View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY)
-        } else {
-            View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
-        }
-        measureChildWithMargins(view, wSpec, hSpec)
+        val hSpec = if (lp.height >= 0) View.MeasureSpec.makeMeasureSpec(lp.height, View.MeasureSpec.EXACTLY)
+        else View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED)
+
+        // Directly measure to compute decorated size and compare with cached rect
+        view.measure(wSpec, hSpec)
         val decorated = view.measuredHeight + lp.topMargin + lp.bottomMargin + decor.top + decor.bottom
         return decorated != (rect.bottom - rect.top)
     }
