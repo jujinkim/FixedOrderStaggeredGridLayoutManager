@@ -6,6 +6,8 @@ Deterministic, fixed-order staggered grid LayoutManager for RecyclerView (Kotlin
 ![Kotlin](https://img.shields.io/badge/kotlin-2.0.0-blue)
 ![AGP](https://img.shields.io/badge/agp-8.5.2-blueviolet)
 
+[한국어 안내서](README.ko.md)
+
 ## Motivation
 compose의 시대가 왔지만 아직 많은 프로젝트가 recyclerview를 쓰고 staggered grid layout manager를 쓴다. 하지만 버그가 있어서 커스텀 레이아웃을 만들었다. 슬프다.
 
@@ -84,7 +86,7 @@ class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container
         val child = LayoutInflater.from(container.context)
             .inflate(R.layout.item_variant, container, false)
         container.addView(child, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        // Tell the LayoutManager to recompute from this position
+        // Schedule the LayoutManager to recompute item positions on next layout
         notifyFixedOrderItemSizeChanged()
     }
 }
@@ -108,6 +110,13 @@ layoutManager.invalidateItemPositions()
 - Contrast with SGLM: The platform StaggeredGridLayoutManager may remeasure/repack visible items on scroll, which can reorder or shift content. This library favors stable, fixed order; explicit signals are required when item sizes actually change.
 - Practical tip: If the internal change does not alter measured height (e.g., swapping equal-height content), no call is needed. When in doubt, calling the holder callback/extension is safe and cheap.
 
+### SpanSizeLookup Guidance
+- `getSpanSize(position)` runs before the LayoutManager attaches or rebinds the ViewHolder, so the holder may not exist or may be off-screen.
+- Expect `findViewHolderForAdapterPosition(position)` to return `null` inside `getSpanSize`; rely on your adapter data or a cached lookup instead.
+- Keep span metadata in immutable structures (e.g., the adapter’s backing list or an injected cache) to stay deterministic and avoid touching view state during span calculations.
+- You do not need to pre-measure every item. Span metadata must be deterministic, but actual item heights are measured lazily when the ViewHolder is first laid out and cached by the LayoutManager.
+- When a measured size can change later, call `invalidateFromPosition(position)` (targeted) or `invalidateItemPositions()` (global) so coordinates recompute from the proper starting point.
+
 ## API Reference (Brief)
 - `class FixedOrderStaggeredGridLayoutManager(context, spanCount = 2)`
   - `setSpanCount(Int)`, `getSpanCount()`
@@ -119,7 +128,7 @@ layoutManager.invalidateItemPositions()
 - `abstract class SpanSizeLookup { fun getSpanSize(position: Int): Int }`
 - `typealias ColumnPinningStrategy = (position: Int) -> Int?`
  - `interface FixedOrderItemSizeChangeAware` — implement in your ViewHolder to receive a size-change callback injected by the LayoutManager
- - `fun RecyclerView.ViewHolder.notifyFixedOrderItemSizeChanged()` — convenience extension to trigger a per-item recompute from inside the holder
+- `fun RecyclerView.ViewHolder.notifyFixedOrderItemSizeChanged()` — convenience extension to trigger a full recompute from inside the holder
 
 ## Notes & Limitations
 - Coordinates are recomputed when: adapter items are inserted/removed/moved, span count changes, span sizes change, or an item’s measured size changes.
