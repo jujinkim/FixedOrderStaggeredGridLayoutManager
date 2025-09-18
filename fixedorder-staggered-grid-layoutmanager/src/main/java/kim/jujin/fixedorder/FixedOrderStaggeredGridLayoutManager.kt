@@ -45,7 +45,6 @@ class FixedOrderStaggeredGridLayoutManager(
     private var contentHeight: Int = 0
     private var precomputedItemCount: Int = 0
     private var pendingScrollPosition: Int = RecyclerView.NO_POSITION
-    private var childAttachListener: RecyclerView.OnChildAttachStateChangeListener? = null
 
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams {
         return RecyclerView.LayoutParams(
@@ -209,24 +208,6 @@ class FixedOrderStaggeredGridLayoutManager(
         requestLayout()
     }
 
-    override fun onAttachedToWindow(view: RecyclerView) {
-        super.onAttachedToWindow(view)
-        if (childAttachListener == null) {
-            childAttachListener = object : RecyclerView.OnChildAttachStateChangeListener {
-                override fun onChildViewAttachedToWindow(v: View) {
-                    installSizeChangeCallbackIfAware(v)
-                }
-                override fun onChildViewDetachedFromWindow(v: View) {}
-            }
-        }
-        view.addOnChildAttachStateChangeListener(childAttachListener!!)
-    }
-
-    override fun onDetachedFromWindow(view: RecyclerView, recycler: RecyclerView.Recycler) {
-        childAttachListener?.let { view.removeOnChildAttachStateChangeListener(it) }
-        super.onDetachedFromWindow(view, recycler)
-    }
-
     // SavedState for offset
     override fun onSaveInstanceState(): Parcelable? = SavedState(verticalScrollOffset)
     override fun onRestoreInstanceState(state: Parcelable?) {
@@ -369,10 +350,7 @@ class FixedOrderStaggeredGridLayoutManager(
         while (pos < itemCount) {
             val rect = itemRects.get(pos) ?: break
             if (rect.top > viewportBottom) break
-            val view = findViewByPosition(pos) ?: recycler.getViewForPosition(pos).also {
-                addView(it)
-                installSizeChangeCallbackIfAware(it)
-            }
+            val view = findViewByPosition(pos) ?: recycler.getViewForPosition(pos).also { addView(it) }
 
             layoutDecoratedWithMargins(
                 view,
@@ -381,23 +359,7 @@ class FixedOrderStaggeredGridLayoutManager(
                 rect.right,
                 rect.bottom - verticalScrollOffset,
             )
-            // Also ensure existing attached views have the callback installed
-            installSizeChangeCallbackIfAware(view)
             pos++
-        }
-    }
-
-    private fun installSizeChangeCallbackIfAware(view: View) {
-        val parent = view.parent as? RecyclerView ?: return
-        val holder = parent.getChildViewHolder(view)
-        if (holder is FixedOrderItemSizeChangeAware) {
-            holder.setFixedOrderItemSizeChangeCallback {
-                val pos = holder.bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
-                    ?: holder.absoluteAdapterPosition
-                if (pos != RecyclerView.NO_POSITION) {
-                    invalidateFromPosition(pos)
-                }
-            }
         }
     }
 

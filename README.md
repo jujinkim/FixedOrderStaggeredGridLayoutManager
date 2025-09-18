@@ -23,7 +23,7 @@ RecyclerView's default StaggeredGridLayoutManager can reorder items and repack o
  - Proper vertical scrolling, recycling, smooth scrolling, and state restore
  - scrollToPosition/smoothScrollToPosition with SNAP_TO_START
  - Explicit recompute APIs for runtime size changes (per-item and bulk)
- - Holder-side integration options (interface callback or extension helper)
+- Holder-side integration via extension helper and explicit invalidation APIs
 
 ## Installation
 Gradle (Kotlin DSL):
@@ -60,25 +60,7 @@ recyclerView.layoutManager = lm
 ### Runtime Size Changes (ViewHolder/Adapter)
 When a ViewHolder replaces children at runtime and its measured height may change, choose one of:
 
-1) Implement the interface and use the injected callback
-```kotlin
-class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container),
-    FixedOrderItemSizeChangeAware {
-    private var onSizeChange: (() -> Unit)? = null
-    override fun setFixedOrderItemSizeChangeCallback(callback: () -> Unit) {
-        onSizeChange = callback
-    }
-    fun rebuildChildren() {
-        container.removeAllViews()
-        val child = LayoutInflater.from(container.context)
-            .inflate(R.layout.item_variant, container, false)
-        container.addView(child, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        onSizeChange?.invoke()
-    }
-}
-```
-
-2) Holder calls the convenience extension
+1) Holder calls the convenience extension
 ```kotlin
 class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container) {
     fun rebuildChildren() {
@@ -92,7 +74,7 @@ class VH(private val container: FrameLayout) : RecyclerView.ViewHolder(container
 }
 ```
 
-3) Adapter-level (alternative)
+2) Adapter-level (alternative)
 ```kotlin
 // After updating data that affects height at a position
 adapter.notifyItemChanged(position, /* payload= */ "size_changed")
@@ -127,7 +109,6 @@ layoutManager.invalidateItemPositions()
   - `scrollToPosition(Int)`, `smoothScrollToPosition(...)` — snaps target to start using absolute cached rects
 - `abstract class SpanSizeLookup { fun getSpanSize(position: Int): Int }`
 - `typealias ColumnPinningStrategy = (position: Int) -> Int?`
- - `interface FixedOrderItemSizeChangeAware` — implement in your ViewHolder to receive a size-change callback injected by the LayoutManager
 - `fun RecyclerView.ViewHolder.notifyFixedOrderItemSizeChanged()` — convenience extension to trigger a full recompute from inside the holder
 
 ## Notes & Limitations

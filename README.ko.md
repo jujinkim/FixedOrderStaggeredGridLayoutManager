@@ -11,6 +11,7 @@ RecyclerView 기본 StaggeredGridLayoutManager는 스크롤이나 재측정 과�
 - **Column Pinning**: 아이템을 특정 시작 컬럼에 고정할 수 있습니다.
 - **명시적 재계산 API**: `invalidateFromPosition(position)`과 `invalidateItemPositions()`로 필요한 범위만 다시 계산합니다.
 - **안정적인 스크롤**: SmoothScroller, `scrollToPosition`, 상태 복원 등 표준 동작을 지원합니다.
+- **간편한 연동**: 확장 함수와 명시적 API만으로 뷰 높이 변화를 반영합니다.
 
 ## 설치
 Gradle (Kotlin DSL):
@@ -33,27 +34,6 @@ dependencies {
 - 이후 높이가 바뀔 수 있다면 `invalidateFromPosition(position)`(부분) 또는 `invalidateItemPositions()`(전체)을 호출해 적절한 지점부터 좌표를 다시 계산하게 하세요.
 
 ## 뷰 홀더에서 높이 변경 감지하기
-### 인터페이스 방식
-```kotlin
-class DemoViewHolder(private val container: FrameLayout) :
-    RecyclerView.ViewHolder(container), FixedOrderItemSizeChangeAware {
-
-    private var onSizeChange: (() -> Unit)? = null
-
-    override fun setFixedOrderItemSizeChangeCallback(callback: () -> Unit) {
-        onSizeChange = callback
-    }
-
-    fun rebuildChildren() {
-        container.removeAllViews()
-        val child = LayoutInflater.from(container.context)
-            .inflate(R.layout.item_variant, container, false)
-        container.addView(child, FrameLayout.LayoutParams(MATCH_PARENT, WRAP_CONTENT))
-        onSizeChange?.invoke()
-    }
-}
-```
-
 ### 확장 함수 방식
 ```kotlin
 class DemoViewHolder(private val container: FrameLayout) : RecyclerView.ViewHolder(container) {
