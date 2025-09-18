@@ -24,7 +24,7 @@ import kotlin.math.min
  * - Optional [ColumnPinningStrategy] to pin items to a specific start column.
  * - Stable, fixed order packing independent of scrolling.
  */
-class FixedOrderStaggeredGridLayoutManager(
+open class FixedOrderStaggeredGridLayoutManager(
     context: Context,
     spanCount: Int = 2,
 ) : RecyclerView.LayoutManager(), RecyclerView.SmoothScroller.ScrollVectorProvider {
