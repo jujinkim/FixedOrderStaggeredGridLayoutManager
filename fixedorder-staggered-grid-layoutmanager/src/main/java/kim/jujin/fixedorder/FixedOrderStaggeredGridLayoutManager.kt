@@ -342,11 +342,13 @@ class FixedOrderStaggeredGridLayoutManager(
         val wSpec = View.MeasureSpec.makeMeasureSpec(max(0, childWidthAvailable), View.MeasureSpec.EXACTLY)
 
         val hLp = lp.height
-        val hSpec = if (hLp >= 0) {
-            View.MeasureSpec.makeMeasureSpec(hLp, View.MeasureSpec.EXACTLY)
-        } else {
-            // For WRAP_CONTENT, allow up to viewport height to avoid 0-height children under UNSPECIFIED.
-            View.MeasureSpec.makeMeasureSpec(max(0, verticalSpace()), View.MeasureSpec.AT_MOST)
+        val hSpec = when {
+            hLp >= 0 -> View.MeasureSpec.makeMeasureSpec(hLp, View.MeasureSpec.EXACTLY)
+            else -> {
+                // Allow wrap-content views to grow beyond the viewport (e.g., large font/zoom).
+                val maxHeight = Int.MAX_VALUE.shr(2)
+                View.MeasureSpec.makeMeasureSpec(maxHeight, View.MeasureSpec.AT_MOST)
+            }
         }
 
         view.measure(wSpec, hSpec)

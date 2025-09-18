@@ -8,17 +8,14 @@ import androidx.recyclerview.widget.RecyclerView
 
 /**
  * Call from inside a ViewHolder after changing the internal layout in a way that may affect height
- * (e.g., removeAllViews + addView). This triggers a recompute starting at this item.
+ * (e.g., removeAllViews + addView). This triggers a full recompute on the next layout pass.
  *
  * Safe no-op if the holder is not attached or layout manager is not FixedOrderStaggeredGridLayoutManager.
  */
 fun RecyclerView.ViewHolder.notifyFixedOrderItemSizeChanged() {
-    val position = bindingAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
-        ?: absoluteAdapterPosition.takeIf { it != RecyclerView.NO_POSITION }
-        ?: return
     val rv = findParentRecyclerView(itemView) ?: return
     val lm = rv.layoutManager as? FixedOrderStaggeredGridLayoutManager ?: return
-    lm.invalidateFromPosition(position)
+    lm.invalidateItemPositions()
 }
 
 private fun findParentRecyclerView(view: View): RecyclerView? {
@@ -29,4 +26,3 @@ private fun findParentRecyclerView(view: View): RecyclerView? {
     }
     return null
 }
-
