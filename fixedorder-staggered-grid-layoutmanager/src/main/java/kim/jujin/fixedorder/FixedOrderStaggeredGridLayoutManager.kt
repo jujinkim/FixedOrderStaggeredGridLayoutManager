@@ -46,6 +46,8 @@ open class FixedOrderStaggeredGridLayoutManager(
     private var precomputedItemCount: Int = 0
     private var pendingScrollPosition: Int = RecyclerView.NO_POSITION
 
+    override fun isAutoMeasureEnabled(): Boolean = true
+
     override fun generateDefaultLayoutParams(): RecyclerView.LayoutParams {
         return RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -126,13 +128,19 @@ open class FixedOrderStaggeredGridLayoutManager(
         // Handle pending scroll target (e.g., scrollToPosition)
         if (pendingScrollPosition != RecyclerView.NO_POSITION) {
             val target = pendingScrollPosition.coerceIn(0, itemCount - 1)
-            val r = itemRects.get(target)
-            if (r != null) {
-                val desired = r.top - paddingTop
+            val rect = itemRects.get(target)
+            if (rect != null) {
+                val desired = rect.top - paddingTop
                 val maxOffset = max(0, contentHeight - verticalSpace())
                 verticalScrollOffset = desired.coerceIn(0, maxOffset)
+                pendingScrollPosition = RecyclerView.NO_POSITION
+            } else {
+                // Rect not ready yet; make sure we recompute from target and try again next pass.
+                itemRects.removeFrom(target)
+                precomputedItemCount = min(precomputedItemCount, target)
+                requestLayout()
+                return
             }
-            pendingScrollPosition = RecyclerView.NO_POSITION
         }
 
         // Clamp offset
@@ -204,7 +212,14 @@ open class FixedOrderStaggeredGridLayoutManager(
     }
 
     override fun scrollToPosition(position: Int) {
-        pendingScrollPosition = position
+        if (itemCount == 0) return
+        val clamped = position.coerceIn(0, itemCount - 1)
+        if (clamped == RecyclerView.NO_POSITION) return
+        if (itemRects.get(clamped) == null) {
+            itemRects.removeFrom(clamped)
+            precomputedItemCount = min(precomputedItemCount, clamped)
+        }
+        pendingScrollPosition = clamped
         requestLayout()
     }
 
