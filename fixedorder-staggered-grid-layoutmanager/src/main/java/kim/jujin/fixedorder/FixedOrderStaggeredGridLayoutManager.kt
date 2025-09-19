@@ -349,7 +349,11 @@ open class FixedOrderStaggeredGridLayoutManager(
         var pos = start
         while (pos < itemCount) {
             val rect = itemRects.get(pos) ?: break
-            if (rect.top > viewportBottom) break
+            if (rect.bottom <= viewportTop) {
+                pos++
+                continue
+            }
+            if (rect.top >= viewportBottom) break
             val view = findViewByPosition(pos) ?: recycler.getViewForPosition(pos).also { addView(it) }
 
             layoutDecoratedWithMargins(
