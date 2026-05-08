@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity() {
         toolbar = findViewById(R.id.toolbar)
         recycler = findViewById(R.id.recycler)
 
-        layoutManager = FixedOrderStaggeredGridLayoutManager(this, 2)
+        layoutManager = FixedOrderStaggeredGridLayoutManager(2)
         recycler.layoutManager = layoutManager
         recycler.adapter = SampleAdapter(buildItems())
         recycler.addItemDecoration(SpacingDecoration(dp = 8))

@@ -40,7 +40,7 @@ Coordinates:
 
 ## Quick Start
 ```kotlin
-val lm = FixedOrderStaggeredGridLayoutManager(context, spanCount = 3)
+val lm = FixedOrderStaggeredGridLayoutManager(spanCount = 3)
 
 lm.setSpanSizeLookup(object : SpanSizeLookup() {
     override fun getSpanSize(position: Int): Int = when (position % 7) {
@@ -100,7 +100,7 @@ layoutManager.invalidateItemPositions()
 - When a measured size can change later, call `invalidateFromPosition(position)` (targeted) or `invalidateItemPositions()` (global) so coordinates recompute from the proper starting point.
 
 ## API Reference (Brief)
-- `class FixedOrderStaggeredGridLayoutManager(context, spanCount = 2)`
+- `class FixedOrderStaggeredGridLayoutManager(spanCount: Int)`
   - `setSpanCount(Int)`, `getSpanCount()`
   - `setSpanSizeLookup(SpanSizeLookup)`, `getSpanSizeLookup()`
   - `setColumnPinningStrategy(ColumnPinningStrategy)`, `getColumnPinningStrategy()`

@@ -30,7 +30,7 @@ class FixedOrderLayoutManagerTest {
         val rv = RecyclerView(context)
         rv.layoutParams = ViewGroup.LayoutParams(1080, 1920)
 
-        val lm = FixedOrderStaggeredGridLayoutManager(context, spanCount = 3)
+        val lm = FixedOrderStaggeredGridLayoutManager(spanCount = 3)
         rv.layoutManager = lm
 
         val heights = (0 until 60).map { baseHeight(it) }
@@ -60,7 +60,7 @@ class FixedOrderLayoutManagerTest {
     fun fullSpanForcesFollowingY_geFullSpanBottom() {
         val rv = RecyclerView(context)
         rv.layoutParams = ViewGroup.LayoutParams(800, 1200)
-        val lm = FixedOrderStaggeredGridLayoutManager(context, spanCount = 3)
+        val lm = FixedOrderStaggeredGridLayoutManager(spanCount = 3)
         rv.layoutManager = lm
 
         val heights = (0 until 30).map { baseHeight(it) }
@@ -88,7 +88,7 @@ class FixedOrderLayoutManagerTest {
     fun pinnedItem_span2_startCol0_inSpanCount3_hasCorrectX_andValidPlacement() {
         val rv = RecyclerView(context)
         rv.layoutParams = ViewGroup.LayoutParams(900, 1400)
-        val lm = FixedOrderStaggeredGridLayoutManager(context, spanCount = 3)
+        val lm = FixedOrderStaggeredGridLayoutManager(spanCount = 3)
         rv.layoutManager = lm
 
         val heights = (0 until 40).map { baseHeight(it) }
@@ -121,7 +121,7 @@ class FixedOrderLayoutManagerTest {
     fun spanCount2_allSpan1_monotonicColumns_andStableAcrossScroll() {
         val rv = RecyclerView(context)
         rv.layoutParams = ViewGroup.LayoutParams(1000, 1200)
-        val lm = FixedOrderStaggeredGridLayoutManager(context, spanCount = 2)
+        val lm = FixedOrderStaggeredGridLayoutManager(spanCount = 2)
         rv.layoutManager = lm
 
         val heights = (0 until 80).map { baseHeight(it) }

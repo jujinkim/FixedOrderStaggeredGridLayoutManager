@@ -1,6 +1,5 @@
 package kim.jujin.fixedorder
 
-import android.content.Context
 import android.graphics.PointF
 import android.graphics.Rect
 import android.os.Parcel
@@ -25,8 +24,7 @@ import kotlin.math.min
  * - Stable, fixed order packing independent of scrolling.
  */
 open class FixedOrderStaggeredGridLayoutManager(
-    context: Context,
-    spanCount: Int = 2,
+    spanCount: Int,
 ) : RecyclerView.LayoutManager(), RecyclerView.SmoothScroller.ScrollVectorProvider {
 
     private var spanCount: Int = max(1, spanCount)
