@@ -153,6 +153,36 @@ class FixedOrderLayoutManagerTest {
         }
     }
 
+    @Test
+    fun recycledChildren_afterScroll_areMeasuredForCurrentAdapterPosition() {
+        val rv = RecyclerView(context)
+        rv.layoutParams = ViewGroup.LayoutParams(720, 640)
+
+        val lm = FixedOrderStaggeredGridLayoutManager(spanCount = 2)
+        rv.layoutManager = lm
+
+        val heights = List(80) { i -> 70 + ((i * 37) % 210) }
+        val adapter = FixedAdapter(heights)
+        rv.adapter = adapter
+
+        rv.measure(
+            View.MeasureSpec.makeMeasureSpec(720, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(640, View.MeasureSpec.EXACTLY),
+        )
+        rv.layout(0, 0, 720, 640)
+
+        assertVisibleChildrenMeasuredForBoundHeight(rv, heights)
+
+        rv.scrollBy(0, 900)
+        assertVisibleChildrenMeasuredForBoundHeight(rv, heights)
+
+        rv.scrollBy(0, 900)
+        assertVisibleChildrenMeasuredForBoundHeight(rv, heights)
+
+        rv.scrollBy(0, -1800)
+        assertVisibleChildrenMeasuredForBoundHeight(rv, heights)
+    }
+
     private fun baseHeight(i: Int): Int = 40 + (i % 9) * 15 + (if (i % 7 == 0) 50 else 0)
 
     private fun intersects(a: Rect, b: Rect): Boolean {
@@ -164,6 +194,19 @@ class FixedOrderLayoutManagerTest {
         for (v in values) {
             assertTrue("Sequence not monotonic: prev=$prev, v=$v", v >= prev)
             prev = v
+        }
+    }
+
+    private fun assertVisibleChildrenMeasuredForBoundHeight(rv: RecyclerView, heights: List<Int>) {
+        for (i in 0 until rv.childCount) {
+            val child = rv.getChildAt(i)
+            val position = rv.getChildAdapterPosition(child)
+            if (position == RecyclerView.NO_POSITION) continue
+            assertEquals(
+                "Position $position must be remeasured for its bound adapter height",
+                heights[position],
+                child.measuredHeight,
+            )
         }
     }
 

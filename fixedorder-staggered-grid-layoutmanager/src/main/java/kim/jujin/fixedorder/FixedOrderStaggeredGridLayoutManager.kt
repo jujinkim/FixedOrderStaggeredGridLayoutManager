@@ -368,6 +368,7 @@ open class FixedOrderStaggeredGridLayoutManager(
             }
             if (rect.top >= viewportBottom) break
             val view = findViewByPosition(pos) ?: recycler.getViewForPosition(pos).also { addView(it) }
+            measureForRect(view, rect)
 
             layoutDecoratedWithMargins(
                 view,
@@ -378,6 +379,20 @@ open class FixedOrderStaggeredGridLayoutManager(
             )
             pos++
         }
+    }
+
+    private fun measureForRect(view: View, rect: Rect) {
+        val lp = view.layoutParams as RecyclerView.LayoutParams
+        val decor = Rect()
+        calculateItemDecorationsForChild(view, decor)
+
+        val childWidth = rect.width() - lp.leftMargin - lp.rightMargin - decor.left - decor.right
+        val childHeight = rect.height() - lp.topMargin - lp.bottomMargin - decor.top - decor.bottom
+
+        view.measure(
+            View.MeasureSpec.makeMeasureSpec(max(0, childWidth), View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(max(0, childHeight), View.MeasureSpec.EXACTLY),
+        )
     }
 
     // Returns true if measured (decorated) height differs from cached rect height
