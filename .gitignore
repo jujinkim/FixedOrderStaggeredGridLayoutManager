@@ -14,7 +14,7 @@ local.properties
 *.class
 *.log
 *.ktx
+.kotlin/
 
 # Gradle Wrapper downloads
-gradle/wrapper/gradle-wrapper.jar
 gradle/wrapper/gradle-wrapper.properties.lock
