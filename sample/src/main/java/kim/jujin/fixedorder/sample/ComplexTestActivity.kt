@@ -8,20 +8,18 @@ import android.os.Bundle
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
+import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
-import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.appbar.AppBarLayout
-import com.google.android.material.appbar.MaterialToolbar
 import kim.jujin.fixedorder.FixedOrderStaggeredGridLayoutManager
 import kotlin.math.roundToInt
 
@@ -44,7 +42,6 @@ private const val OUTER_ITEM_TALL_HEIGHT_DP = 410
 private const val OUTER_ITEM_EXTRA_TALL_HEIGHT_DP = 620
 private const val INNER_CHILD_COUNT = 5
 private const val INNER_CHILD_SIZE_DP = 80
-private const val APP_BAR_HEIGHT_DP = 300
 private const val OUTER_ITEM_GAP_DP = 10
 private const val EXPANDED_TITLE_SP = 15f
 private const val COLLAPSED_TITLE_SP = 20f
@@ -69,21 +66,15 @@ Useful variants:
 class ComplexTestActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_complex_test)
 
-        val pager = ViewPager2(this).apply {
-            id = View.generateViewId()
-            layoutParams = ViewGroup.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
+        findViewById<ViewPager2>(R.id.complex_pager).apply {
             adapter = ComplexPageAdapter()
             currentItem = 0
             if (VIEWPAGER_OFFSCREEN_LIMIT >= 0) {
                 offscreenPageLimit = VIEWPAGER_OFFSCREEN_LIMIT
             }
         }
-
-        setContentView(pager)
     }
 
     private class ComplexPageAdapter : RecyclerView.Adapter<PageHolder>() {
@@ -92,7 +83,9 @@ class ComplexTestActivity : AppCompatActivity() {
         override fun getItemViewType(position: Int): Int = position
 
         override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PageHolder {
-            return PageHolder(ComplexPageView(parent.context))
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_complex_page, parent, false)
+            return PageHolder(view)
         }
 
         override fun onBindViewHolder(holder: PageHolder, position: Int) {
@@ -100,104 +93,31 @@ class ComplexTestActivity : AppCompatActivity() {
         }
     }
 
-    private class PageHolder(val page: ComplexPageView) : RecyclerView.ViewHolder(page)
+    private class PageHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val page = ComplexPageController(view)
+    }
 }
 
-private class ComplexPageView(context: Context) : FrameLayout(context) {
+private class ComplexPageController(private val root: View) {
     private var pageIndex: Int = 0
     private var appBarOffset: Int = 0
     private var titleTargetSizeSp: Float = EXPANDED_TITLE_SP
     private var titleAnimator: ValueAnimator? = null
     private var outerScrollState: Int = RecyclerView.SCROLL_STATE_IDLE
 
-    private val titleView: TextView
-    private val appBarLayout: AppBarLayout
-    private val outerRecyclerView: RecyclerView
+    private val titleView: TextView = root.findViewById(R.id.complex_toolbar_title)
+    private val appBarLayout: AppBarLayout = root.findViewById(R.id.complex_app_bar)
+    private val outerRecyclerView: RecyclerView = root.findViewById(R.id.complex_outer_recycler)
     private val outerAdapter = OuterAdapter()
 
     init {
-        layoutParams = RecyclerView.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-        )
-
-        val coordinator = CoordinatorLayout(context).apply {
-            layoutParams = LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            )
+        outerRecyclerView.adapter = outerAdapter
+        outerRecyclerView.layoutManager = if (USE_GRID_LAYOUT_MANAGER) {
+            GridLayoutManager(root.context, OUTER_SPAN_COUNT)
+        } else {
+            FixedOrderStaggeredGridLayoutManager(OUTER_SPAN_COUNT)
         }
-
-        appBarLayout = AppBarLayout(context).apply {
-            setBackgroundColor(Color.rgb(35, 45, 65))
-            layoutParams = CoordinatorLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                context.dp(APP_BAR_HEIGHT_DP),
-            )
-        }
-
-        val appBarContainer = FrameLayout(context).apply {
-            minimumHeight = context.actionBarSize()
-        }
-        val appBarChildParams = AppBarLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-        ).apply {
-            scrollFlags = AppBarLayout.LayoutParams.SCROLL_FLAG_SCROLL or
-                AppBarLayout.LayoutParams.SCROLL_FLAG_EXIT_UNTIL_COLLAPSED
-        }
-        appBarLayout.addView(appBarContainer, appBarChildParams)
-
-        val toolbar = MaterialToolbar(context).apply {
-            setBackgroundColor(Color.rgb(35, 45, 65))
-            elevation = context.dp(4).toFloat()
-        }
-
-        titleView = TextView(context).apply {
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, EXPANDED_TITLE_SP)
-            gravity = Gravity.CENTER_VERTICAL
-        }
-        toolbar.addView(
-            titleView,
-            Toolbar.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                Gravity.CENTER_VERTICAL,
-            ),
-        )
-
-        outerRecyclerView = RecyclerView(context).apply {
-            id = View.generateViewId()
-            clipToPadding = false
-            setPadding(context.dp(8), context.dp(8), context.dp(8), context.dp(8))
-            adapter = outerAdapter
-            layoutManager = if (USE_GRID_LAYOUT_MANAGER) {
-                GridLayoutManager(context, OUTER_SPAN_COUNT)
-            } else {
-                FixedOrderStaggeredGridLayoutManager(OUTER_SPAN_COUNT)
-            }
-            addItemDecoration(OuterGapDecoration(context.dp(OUTER_ITEM_GAP_DP)))
-        }
-        val recyclerParams = CoordinatorLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT,
-        ).apply {
-            behavior = AppBarLayout.ScrollingViewBehavior()
-        }
-
-        coordinator.addView(appBarLayout)
-        coordinator.addView(outerRecyclerView, recyclerParams)
-        coordinator.addView(
-            toolbar,
-            CoordinatorLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                context.actionBarSize(),
-            ).apply {
-                gravity = Gravity.TOP
-            },
-        )
-        addView(coordinator)
+        outerRecyclerView.addItemDecoration(OuterGapDecoration(root.context.dp(OUTER_ITEM_GAP_DP)))
 
         appBarLayout.addOnOffsetChangedListener { appBar, verticalOffset ->
             appBarOffset = verticalOffset
@@ -238,7 +158,7 @@ private class ComplexPageView(context: Context) : FrameLayout(context) {
         titleTargetSizeSp = targetSizeSp
         titleAnimator?.cancel()
 
-        val startSizeSp = titleView.textSize / resources.displayMetrics.scaledDensity
+        val startSizeSp = titleView.textSize / root.resources.displayMetrics.scaledDensity
         Log.d(TAG, "P$pageIndex Title targetSize=$targetSizeSp startSize=$startSizeSp")
 
         titleAnimator = ValueAnimator.ofFloat(startSizeSp, targetSizeSp).apply {
@@ -294,9 +214,9 @@ private class OuterAdapter : RecyclerView.Adapter<OuterHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): OuterHolder {
         return if (isInnerPosition(viewType)) {
-            InnerOuterHolder(parent.context, viewType)
+            InnerOuterHolder(parent, viewType)
         } else {
-            NormalOuterHolder(parent.context, viewType)
+            NormalOuterHolder(parent, viewType)
         }
     }
 
@@ -313,66 +233,42 @@ private abstract class OuterHolder(root: View) : RecyclerView.ViewHolder(root) {
     abstract fun bind(pageIndex: Int, position: Int, viewType: Int, isInner: Boolean)
 }
 
-private class NormalOuterHolder(context: Context, viewType: Int) : OuterHolder(
-    TextView(context).apply {
-        layoutParams = RecyclerView.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            context.dp(outerItemHeightDp(viewType)),
-        )
-        gravity = Gravity.CENTER
-        setTextColor(Color.WHITE)
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-        setBackgroundColor(colorForViewType(viewType))
-    },
+private class NormalOuterHolder(parent: ViewGroup, viewType: Int) : OuterHolder(
+    LayoutInflater.from(parent.context).inflate(R.layout.item_complex_outer_normal, parent, false),
 ) {
     private val label = itemView as TextView
+
+    init {
+        itemView.layoutParams = RecyclerView.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            itemView.context.dp(outerItemHeightDp(viewType)),
+        )
+        itemView.setBackgroundColor(colorForViewType(viewType))
+    }
 
     override fun bind(pageIndex: Int, position: Int, viewType: Int, isInner: Boolean) {
         itemView.layoutParams = RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             itemView.context.dp(outerItemHeightDp(position)),
         )
+        itemView.setBackgroundColor(colorForViewType(viewType))
         label.text = "Page $pageIndex / Outer item $position / viewType $viewType / normal / ${outerItemHeightDp(position)}dp"
     }
 }
 
-private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
-    FrameLayout(context).apply {
-        layoutParams = RecyclerView.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            context.dp(outerItemHeightDp(viewType)),
-        )
-        setBackgroundColor(colorForViewType(viewType))
-    },
+private class InnerOuterHolder(parent: ViewGroup, viewType: Int) : OuterHolder(
+    LayoutInflater.from(parent.context).inflate(R.layout.item_complex_outer_inner, parent, false),
 ) {
-    private val container = itemView as FrameLayout
-    private val labelView = TextView(context).apply {
-        gravity = Gravity.CENTER_VERTICAL
-        setPadding(context.dp(8), 0, context.dp(8), 0)
-        setTextColor(Color.WHITE)
-        setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
-        setBackgroundColor(0x99000000.toInt())
-    }
-    private val contentHost = FrameLayout(context)
-    private var innerRecyclerView: RecyclerView? = null
+    private val labelView: TextView = itemView.findViewById(R.id.complex_inner_label)
+    private val contentHost: FrameLayout = itemView.findViewById(R.id.complex_inner_content_host)
     private var layoutLogged = false
 
     init {
-        container.addView(
-            contentHost,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
+        itemView.layoutParams = RecyclerView.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            itemView.context.dp(outerItemHeightDp(viewType)),
         )
-        container.addView(
-            labelView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                context.dp(28),
-                Gravity.TOP,
-            ),
-        )
+        itemView.setBackgroundColor(colorForViewType(viewType))
     }
 
     override fun bind(pageIndex: Int, position: Int, viewType: Int, isInner: Boolean) {
@@ -380,6 +276,7 @@ private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
             ViewGroup.LayoutParams.MATCH_PARENT,
             itemView.context.dp(outerItemHeightDp(position)),
         )
+        itemView.setBackgroundColor(colorForViewType(viewType))
 
         val innerLabel = if (position == 1) "A" else "B"
         labelView.text =
@@ -395,18 +292,15 @@ private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
     }
 
     private fun createDummyInnerView(pageIndex: Int, outerPosition: Int, innerLabel: String): View {
-        return TextView(itemView.context).apply {
-            layoutParams = FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                itemView.context.dp(INNER_CHILD_SIZE_DP),
-                Gravity.CENTER_VERTICAL,
-            )
-            gravity = Gravity.CENTER
-            setTextColor(Color.BLACK)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
-            setBackgroundColor(Color.rgb(230, 230, 230))
-            text = "P$pageIndex outer$outerPosition dummy $innerLabel"
-        }
+        val view = LayoutInflater.from(itemView.context)
+            .inflate(R.layout.view_complex_inner_dummy, contentHost, false) as TextView
+        view.layoutParams = FrameLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            itemView.context.dp(INNER_CHILD_SIZE_DP),
+            Gravity.CENTER_VERTICAL,
+        )
+        view.text = "P$pageIndex outer$outerPosition dummy $innerLabel"
+        return view
     }
 
     private fun createInnerRecyclerView(pageIndex: Int, outerPosition: Int, innerLabel: String): RecyclerView {
@@ -416,7 +310,8 @@ private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
             }
         }
 
-        return RecyclerView(itemView.context).apply {
+        return (LayoutInflater.from(itemView.context)
+            .inflate(R.layout.view_complex_inner_recycler, contentHost, false) as RecyclerView).apply {
             layoutParams = FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 if (FIX_INNER_RV_HEIGHT) itemView.context.dp(INNER_CHILD_SIZE_DP) else ViewGroup.LayoutParams.MATCH_PARENT,
@@ -444,7 +339,6 @@ private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
                         "oldTop=$oldTop oldBottom=$oldBottom width=${right - left} height=${bottom - top}",
                 )
             }
-            innerRecyclerView = this
         }
     }
 }
@@ -456,16 +350,13 @@ private class InnerAdapter(
     override fun getItemCount(): Int = INNER_CHILD_COUNT
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): InnerHolder {
-        return InnerHolder(TextView(parent.context).apply {
-            layoutParams = RecyclerView.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                parent.context.dp(INNER_CHILD_SIZE_DP),
-            )
-            gravity = Gravity.CENTER
-            setTextColor(Color.WHITE)
-            setTextSize(TypedValue.COMPLEX_UNIT_SP, 10f)
-            setBackgroundColor(Color.rgb(88, 111, 166))
-        })
+        val label = LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_complex_inner_text, parent, false) as TextView
+        label.layoutParams = RecyclerView.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            parent.context.dp(INNER_CHILD_SIZE_DP),
+        )
+        return InnerHolder(label)
     }
 
     override fun onBindViewHolder(holder: InnerHolder, position: Int) {
@@ -497,12 +388,6 @@ private class OuterGapDecoration(private val gapPx: Int) : RecyclerView.ItemDeco
 
 private fun Context.dp(value: Int): Int {
     return (value * resources.displayMetrics.density).roundToInt()
-}
-
-private fun Context.actionBarSize(): Int {
-    val outValue = TypedValue()
-    theme.resolveAttribute(android.R.attr.actionBarSize, outValue, true)
-    return TypedValue.complexToDimensionPixelSize(outValue.data, resources.displayMetrics)
 }
 
 private fun scrollStateName(state: Int): String {
