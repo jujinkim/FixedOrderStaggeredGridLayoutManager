@@ -1,9 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/complex_inner_child_label"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/complex_inner_item_root"
     android:layout_width="match_parent"
-    android:layout_height="80dp"
+    android:layout_height="match_parent"
+    android:minHeight="80dp"
     android:background="#586FA6"
-    android:gravity="center"
-    android:textColor="@android:color/white"
-    android:textSize="10sp" />
+    android:padding="6dp">
+
+    <LinearLayout
+        android:id="@+id/complex_inner_content"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center_vertical"
+        android:orientation="vertical">
+
+        <View
+            android:id="@+id/complex_inner_icon"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:background="#90CAF9" />
+
+        <TextView
+            android:id="@+id/complex_inner_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="3dp"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@android:color/white"
+            android:textSize="11sp" />
+
+        <TextView
+            android:id="@+id/complex_inner_subtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="#D8E2FF"
+            android:textSize="9sp" />
+
+        <TextView
+            android:id="@+id/complex_inner_value"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="@android:color/white"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/complex_inner_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="16dp"
+            android:layout_marginTop="2dp"
+            android:background="#33FFFFFF"
+            android:gravity="center"
+            android:minWidth="28dp"
+            android:paddingStart="5dp"
+            android:paddingEnd="5dp"
+            android:textColor="@android:color/white"
+            android:textSize="8sp" />
+    </LinearLayout>
+</FrameLayout>

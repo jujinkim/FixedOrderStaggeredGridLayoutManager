@@ -123,6 +123,25 @@ layoutManager.invalidateItemPositions()
 
 ## Sample App
 - `:sample` shows 2/3 span toggling, irregular heights, full-span/multi-span items, and pinned items.
+- Complex Test contains a ViewPager2 + CoordinatorLayout/AppBar reproduction screen for first-scroll reverse-bounce investigation.
+
+### Complex Repro Test Matrix
+Launch `:sample`, open `Complex Test`, keep Page 0 selected, and fling upward from the fully expanded AppBar.
+
+- A. Custom LM + `DAEMONAPP_NOISE_MODE = true`
+- B. Custom LM + `DAEMONAPP_NOISE_MODE = false`
+- C. `GridLayoutManager` + `DAEMONAPP_NOISE_MODE = true`
+- D. Custom LM + only one inner RV
+- E. Custom LM + dummy views instead of inner RVs
+- F. Custom LM + disable inner prefetch
+- G. Custom LM + disable itemAnimator
+- H. Custom LM + disable focus
+
+Expected interpretation:
+- If only A reproduces: production timing/noise dependency is likely confirmed.
+- If C reproduces too: the issue is probably not custom-LM-specific.
+- If F/G/H stops reproduction: the corresponding inner RV subsystem is likely a trigger.
+- If D/E stops reproduction: two real inner RVs are likely required.
 
 ## Roadmap / Contributing
 - Optional item spacing attrs
