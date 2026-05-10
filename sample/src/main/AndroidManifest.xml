@@ -3,6 +3,9 @@
         android:label="FixedOrder Sample"
         android:theme="@style/Theme.Material3.DayNight.NoActionBar">
         <activity
+            android:name=".ComplexTestActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="false" />
         <activity

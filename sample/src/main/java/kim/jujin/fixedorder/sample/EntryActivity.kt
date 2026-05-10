@@ -2,7 +2,6 @@ package kim.jujin.fixedorder.sample
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.button.MaterialButton
 
@@ -16,7 +15,7 @@ class EntryActivity : AppCompatActivity() {
         }
 
         findViewById<MaterialButton>(R.id.button_complex_test).setOnClickListener {
-            Toast.makeText(this, "Complex Test is not implemented yet.", Toast.LENGTH_SHORT).show()
+            startActivity(Intent(this, ComplexTestActivity::class.java))
         }
     }
 }
