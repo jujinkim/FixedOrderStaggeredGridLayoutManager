@@ -14,8 +14,7 @@
             android:id="@+id/complex_app_bar_content"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:minHeight="?attr/actionBarSize"
-            app:layout_scrollFlags="scroll|exitUntilCollapsed" />
+            app:layout_scrollFlags="scroll|snap" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -32,7 +31,7 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         android:layout_gravity="top"
-        android:background="#232D41"
+        android:background="#99232D41"
         android:elevation="4dp">
 
         <TextView

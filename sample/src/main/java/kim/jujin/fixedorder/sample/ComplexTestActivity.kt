@@ -37,9 +37,9 @@ private const val VIEWPAGER_OFFSCREEN_LIMIT = -1
 
 private const val PAGE_COUNT = 3
 private const val OUTER_ITEM_COUNT = 15
-private const val OUTER_ITEM_DEFAULT_HEIGHT_DP = 200
-private const val OUTER_ITEM_TALL_HEIGHT_DP = 410
-private const val OUTER_ITEM_EXTRA_TALL_HEIGHT_DP = 620
+private const val OUTER_ITEM_DEFAULT_HEIGHT_DP = 90
+private const val OUTER_ITEM_TALL_HEIGHT_DP = 190
+private const val OUTER_ITEM_EXTRA_TALL_HEIGHT_DP = 290
 private const val INNER_CHILD_COUNT = 5
 private const val INNER_CHILD_SIZE_DP = 80
 private const val OUTER_ITEM_GAP_DP = 10
