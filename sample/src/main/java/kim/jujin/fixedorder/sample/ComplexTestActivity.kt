@@ -11,13 +11,13 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
-import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.PagerSnapHelper
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.appbar.AppBarLayout
@@ -39,7 +39,9 @@ private const val VIEWPAGER_OFFSCREEN_LIMIT = -1
 
 private const val PAGE_COUNT = 3
 private const val OUTER_ITEM_COUNT = 15
-private const val OUTER_ITEM_HEIGHT_DP = 200
+private const val OUTER_ITEM_DEFAULT_HEIGHT_DP = 200
+private const val OUTER_ITEM_TALL_HEIGHT_DP = 410
+private const val OUTER_ITEM_EXTRA_TALL_HEIGHT_DP = 620
 private const val INNER_CHILD_COUNT = 5
 private const val INNER_CHILD_SIZE_DP = 80
 private const val APP_BAR_HEIGHT_DP = 300
@@ -262,7 +264,7 @@ private class ComplexPageView(context: Context) : FrameLayout(context) {
             }
             append("]")
         }
-        return "$visible ${innerBoundsLog(1, "A")} ${innerBoundsLog(3, "B")}"
+        return "$visible ${innerBoundsLog(1, "A")} ${innerBoundsLog(2, "B")}"
     }
 
     private fun innerBoundsLog(position: Int, label: String): String {
@@ -303,7 +305,7 @@ private class OuterAdapter : RecyclerView.Adapter<OuterHolder>() {
     }
 
     fun isInnerPosition(position: Int): Boolean {
-        return position == 1 || (INNER_RV_COUNT >= 2 && position == 3)
+        return position == 1 || (INNER_RV_COUNT >= 2 && position == 2)
     }
 }
 
@@ -315,7 +317,7 @@ private class NormalOuterHolder(context: Context, viewType: Int) : OuterHolder(
     TextView(context).apply {
         layoutParams = RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            context.dp(OUTER_ITEM_HEIGHT_DP),
+            context.dp(outerItemHeightDp(viewType)),
         )
         gravity = Gravity.CENTER
         setTextColor(Color.WHITE)
@@ -328,28 +330,28 @@ private class NormalOuterHolder(context: Context, viewType: Int) : OuterHolder(
     override fun bind(pageIndex: Int, position: Int, viewType: Int, isInner: Boolean) {
         itemView.layoutParams = RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            itemView.context.dp(OUTER_ITEM_HEIGHT_DP),
+            itemView.context.dp(outerItemHeightDp(position)),
         )
-        label.text = "Page $pageIndex / Outer item $position / viewType $viewType / normal"
+        label.text = "Page $pageIndex / Outer item $position / viewType $viewType / normal / ${outerItemHeightDp(position)}dp"
     }
 }
 
 private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
-    LinearLayout(context).apply {
+    FrameLayout(context).apply {
         layoutParams = RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            context.dp(OUTER_ITEM_HEIGHT_DP),
+            context.dp(outerItemHeightDp(viewType)),
         )
-        orientation = LinearLayout.VERTICAL
         setBackgroundColor(colorForViewType(viewType))
     },
 ) {
-    private val container = itemView as LinearLayout
+    private val container = itemView as FrameLayout
     private val labelView = TextView(context).apply {
         gravity = Gravity.CENTER_VERTICAL
         setPadding(context.dp(8), 0, context.dp(8), 0)
         setTextColor(Color.WHITE)
         setTextSize(TypedValue.COMPLEX_UNIT_SP, 11f)
+        setBackgroundColor(0x99000000.toInt())
     }
     private val contentHost = FrameLayout(context)
     private var innerRecyclerView: RecyclerView? = null
@@ -357,18 +359,18 @@ private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
 
     init {
         container.addView(
-            labelView,
-            LinearLayout.LayoutParams(
+            contentHost,
+            FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                context.dp(20),
+                ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
         container.addView(
-            contentHost,
-            LinearLayout.LayoutParams(
+            labelView,
+            FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                0,
-                1f,
+                context.dp(28),
+                Gravity.TOP,
             ),
         )
     }
@@ -376,11 +378,12 @@ private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
     override fun bind(pageIndex: Int, position: Int, viewType: Int, isInner: Boolean) {
         itemView.layoutParams = RecyclerView.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            itemView.context.dp(OUTER_ITEM_HEIGHT_DP),
+            itemView.context.dp(outerItemHeightDp(position)),
         )
 
         val innerLabel = if (position == 1) "A" else "B"
-        labelView.text = "Page $pageIndex / Outer item $position / viewType $viewType / INNER RV $innerLabel"
+        labelView.text =
+            "Page $pageIndex / Outer item $position / viewType $viewType / INNER RV $innerLabel / ${outerItemHeightDp(position)}dp"
 
         contentHost.removeAllViews()
         layoutLogged = false
@@ -430,6 +433,7 @@ private class InnerOuterHolder(context: Context, viewType: Int) : OuterHolder(
                 isFocusableInTouchMode = false
                 descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
             }
+            PagerSnapHelper().attachToRecyclerView(this)
             addOnLayoutChangeListener { view, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom ->
                 val first = !layoutLogged
                 layoutLogged = true
@@ -454,7 +458,7 @@ private class InnerAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): InnerHolder {
         return InnerHolder(TextView(parent.context).apply {
             layoutParams = RecyclerView.LayoutParams(
-                parent.context.dp(INNER_CHILD_SIZE_DP),
+                ViewGroup.LayoutParams.MATCH_PARENT,
                 parent.context.dp(INNER_CHILD_SIZE_DP),
             )
             gravity = Gravity.CENTER
@@ -470,6 +474,15 @@ private class InnerAdapter(
 }
 
 private class InnerHolder(val label: TextView) : RecyclerView.ViewHolder(label)
+
+private fun outerItemHeightDp(position: Int): Int {
+    if (position == 0) return OUTER_ITEM_TALL_HEIGHT_DP
+    return when (((position * 37) + 2) % 3) {
+        0 -> OUTER_ITEM_DEFAULT_HEIGHT_DP
+        1 -> OUTER_ITEM_TALL_HEIGHT_DP
+        else -> OUTER_ITEM_EXTRA_TALL_HEIGHT_DP
+    }
+}
 
 private class OuterGapDecoration(private val gapPx: Int) : RecyclerView.ItemDecoration() {
     override fun getItemOffsets(
