@@ -55,6 +55,32 @@ open class FixedOrderStaggeredGridLayoutManager(
 
     override fun canScrollVertically(): Boolean = true
 
+    override fun requestChildRectangleOnScreen(
+        parent: RecyclerView,
+        child: View,
+        rect: Rect,
+        immediate: Boolean,
+        focusedChildVisible: Boolean,
+    ): Boolean {
+        // Prevent focus/child-rectangle correction from issuing smoothScrollBy() while
+        // the RecyclerView is actively scrolling or flinging. In staggered layouts with
+        // nested RecyclerViews and AppBar/Toolbar re-layout, RecyclerView may request a
+        // child rectangle during settling, producing a visible reverse smooth scroll.
+        // Keep the default behavior while idle so D-pad, keyboard, and accessibility
+        // focus navigation can still bring focused children into view.
+        if (parent.scrollState != RecyclerView.SCROLL_STATE_IDLE) {
+            return false
+        }
+
+        return super.requestChildRectangleOnScreen(
+            parent,
+            child,
+            rect,
+            immediate,
+            focusedChildVisible,
+        )
+    }
+
     fun setSpanCount(count: Int) {
         val newCount = max(1, count)
         if (newCount == spanCount) return
